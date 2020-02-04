@@ -23,6 +23,7 @@
  */
 
 #include "private-lib-core.h"
+#include <wolfssl/internal.h>
 
 /*
  * Care: many openssl apis return 1 for success.  These are translated to the
@@ -418,7 +419,12 @@ check_key:
 	/* Get X509 certificate from ssl context */
 #if !defined(LWS_WITH_BORINGSSL)
 #if !defined(LWS_HAVE_SSL_EXTRA_CHAIN_CERTS)
-	x = sk_X509_value(vhost->tls.ssl_ctx->extra_certs, 0);
+	STACK_OF(X509) *extra_certs = NULL;
+	SSL_CTX_ctrl(vhost->tls.ssl_ctx,SSL_CTRL_GET_EXTRA_CHAIN_CERTS,1,&extra_certs); 
+	if (extra_certs)
+		x = sk_X509_value(extra_certs, 0);
+	else
+		lwsl_info("%s: no extra certs\n", __func__);
 #else
 	SSL_CTX_get_extra_chain_certs_only(vhost->tls.ssl_ctx, &extra_certs);
 	if (extra_certs)
